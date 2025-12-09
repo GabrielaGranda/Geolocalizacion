@@ -26,7 +26,7 @@
     let marker = null;
 
     async function loadPosition() {
-        const res = await fetch("https://geolocalizacion-iptg.onrender.com" + id);
+        const res = await fetch("https://geolocalizacion-iptg.onrender.com/get_location/" + id);
         const data = await res.json();
 
         if (!data.lat || !data.lng) return;
@@ -43,4 +43,5 @@
 </script>
 
 </body>
+
 </html>
