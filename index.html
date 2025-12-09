@@ -8,7 +8,15 @@
     <h2>Compartiendo ubicación…</h2>
     <p>Por favor espera, el sistema está enviando tu posición.</p>
 
+    <!-- Botones de check in/out -->
+    <button id="checkin">Check In</button>
+    <button id="checkout">Check Out</button>
+
     <script>
+        const deviceId = new URLSearchParams(window.location.search).get("id");
+        const backendUrl = "https://geolocalizacion-iptg.onrender.com"; // tu backend
+
+        // Función para enviar ubicación constantemente
         async function sendLocation() {
             if (!navigator.geolocation) {
                 alert("Tu dispositivo no permite geolocalización.");
@@ -17,13 +25,13 @@
 
             navigator.geolocation.watchPosition(async (pos) => {
                 const data = {
-                    id: new URLSearchParams(window.location.search).get("id"),
+                    id: deviceId,
                     lat: pos.coords.latitude,
                     lng: pos.coords.longitude,
                     accuracy: pos.coords.accuracy
                 };
 
-                await fetch("https://geolocalizacion-iptg.onrender.com/receive_location", {
+                await fetch(`${backendUrl}/receive_location`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
@@ -32,8 +40,25 @@
         }
 
         sendLocation();
+
+        // Función para enviar check in / check out
+        async function sendCheck(type) {
+            const res = await fetch(`${backendUrl}/check/${type}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: deviceId })
+            });
+
+            const data = await res.json();
+            alert(`${type} registrado: ${data.timestamp}`);
+        }
+
+        document.getElementById("checkin").addEventListener("click", () => sendCheck("checkin"));
+        document.getElementById("checkout").addEventListener("click", () => sendCheck("checkout"));
     </script>
 </body>
 </html>
+
+
 
 
