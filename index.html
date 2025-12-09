@@ -23,7 +23,7 @@
                     accuracy: pos.coords.accuracy
                 };
 
-                await fetch("https://TU_BACKEND/receive_location", {
+                await fetch("https://geolocalizacion-iptg.onrender.com", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
@@ -35,3 +35,4 @@
     </script>
 </body>
 </html>
+
