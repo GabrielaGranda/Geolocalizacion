@@ -1,29 +1,25 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "c70e2e56",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import requests"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "9917a458",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  }
- ],
- "metadata": {
-  "language_info": {
-   "name": "python"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+from flask import Flask, request, jsonify
+import time
+
+app = Flask(__name__)
+
+# Aquí guardamos las ubicaciones en memoria:
+locations = {}  # { "ABC123": {"lat":.., "lng":.., "timestamp":.. } }
+
+@app.route("/receive_location", methods=["POST"])
+def receive_location():
+    data = request.json
+    device_id = data.get("id")
+
+    locations[device_id] = {
+        "lat": data["lat"],
+        "lng": data["lng"],
+        "accuracy": data["accuracy"],
+        "timestamp": int(time.time())
+    }
+
+    return jsonify({"status": "ok"})
+
+@app.route("/get_location/<device_id>")
+def get_location(device_id):
+    return jsonify(locations.get(device_id, {"error": "no data"}))
