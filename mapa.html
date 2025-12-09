@@ -14,54 +14,80 @@
 </head>
 <body>
 
-<h2>Ubicación en tiempo real</h2>
+<h2>Ubicación en tiempo real con Check In/Out</h2>
 <div id="status">Cargando ubicación…</div>
 <div id="map"></div>
 
 <script>
-    const id = new URLSearchParams(window.location.search).get("id");
-    const backendUrl = "https://geolocalizacion-iptg.onrender.com"; // Tu backend en Render
+const id = new URLSearchParams(window.location.search).get("id");
+const backendUrl = "https://geolocalizacion-iptg.onrender.com"; // tu backend
 
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+const map = L.map('map').setView([0, 0], 2);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    let marker = null;
-    const statusDiv = document.getElementById("status");
+let currentMarker = null;
+const checkInMarkers = [];
+const checkOutMarkers = [];
+const statusDiv = document.getElementById("status");
 
-    async function loadPosition() {
-        try {
-            // Evitar cache y forzar petición nueva
-            const res = await fetch(`${backendUrl}/get_location/${id}?t=${new Date().getTime()}`, {
-                cache: "no-store"
-            });
-            const data = await res.json();
+// Función para cargar ubicación y check-in/out
+async function loadData() {
+    try {
+        // Evitar cache
+        const resLocation = await fetch(`${backendUrl}/get_location/${id}?t=${new Date().getTime()}`, {cache:"no-store"});
+        const locationData = await resLocation.json();
 
-            if (!data || !data.lat || !data.lng) {
-                statusDiv.textContent = "No hay datos de ubicación todavía. Asegúrate de abrir primero el link del conductor.";
-                return;
-            }
+        const resChecks = await fetch(`${backendUrl}/get_checks/${id}?t=${new Date().getTime()}`, {cache:"no-store"});
+        const checkData = await resChecks.json();
 
-            statusDiv.textContent = `Última ubicación recibida (precisión: ${data.accuracy} m)`;
+        // Mostrar ubicación actual
+        if (locationData.lat && locationData.lng) {
+            statusDiv.textContent = `Última ubicación (precisión: ${locationData.accuracy} m)`;
 
-            if (!marker) {
-                marker = L.marker([data.lat, data.lng]).addTo(map);
-                map.setView([data.lat, data.lng], 15);
+            if (!currentMarker) {
+                currentMarker = L.marker([locationData.lat, locationData.lng], {title:"Ubicación actual"}).addTo(map);
+                map.setView([locationData.lat, locationData.lng], 15);
             } else {
-                marker.setLatLng([data.lat, data.lng]);
+                currentMarker.setLatLng([locationData.lat, locationData.lng]);
             }
-
-        } catch (err) {
-            statusDiv.textContent = "Error al obtener datos del backend: " + err;
-            console.error(err);
+        } else {
+            statusDiv.textContent = "No hay ubicación disponible todavía.";
         }
+
+        // Mostrar check-ins (verde)
+        if (checkData.checkin) {
+            checkData.checkin.forEach(ts => {
+                const parts = ts.split(" ");
+                const lat = locationData.lat; // opcional: si quieres ubicar check en la misma posición
+                const lng = locationData.lng;
+                const marker = L.circleMarker([lat, lng], {color:"green", radius:8}).addTo(map);
+                marker.bindPopup(`Check In: ${ts}`);
+                checkInMarkers.push(marker);
+            });
+        }
+
+        // Mostrar check-outs (rojo)
+        if (checkData.checkout) {
+            checkData.checkout.forEach(ts => {
+                const lat = locationData.lat;
+                const lng = locationData.lng;
+                const marker = L.circleMarker([lat, lng], {color:"red", radius:8}).addTo(map);
+                marker.bindPopup(`Check Out: ${ts}`);
+                checkOutMarkers.push(marker);
+            });
+        }
+
+    } catch(err) {
+        statusDiv.textContent = "Error al obtener datos del backend: " + err;
+        console.error(err);
     }
+}
 
-    // Actualizar cada 3 segundos
-    setInterval(loadPosition, 3000);
-
-    // Carga inicial
-    loadPosition();
+// Cargar cada 3 segundos
+setInterval(loadData, 3000);
+loadData();
 </script>
 
 </body>
 </html>
+
