@@ -5,43 +5,63 @@
     <title>Ubicación del Conductor</title>
     <style>
         #map { width: 100%; height: 90vh; }
+        #status { padding: 10px; font-weight: bold; }
     </style>
 
-    <!-- Mapas gratis con Leaflet -->
+    <!-- Leaflet para mapas -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
 
 <h2>Ubicación en tiempo real</h2>
+<div id="status">Cargando ubicación…</div>
 <div id="map"></div>
 
 <script>
     const id = new URLSearchParams(window.location.search).get("id");
+    const backendUrl = "https://geolocalizacion-iptg.onrender.com"; // Tu backend en Render
 
-    // Inicializar mapa
     const map = L.map('map').setView([0, 0], 2);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-    
+
     let marker = null;
+    const statusDiv = document.getElementById("status");
 
     async function loadPosition() {
-        const res = await fetch("https://geolocalizacion-iptg.onrender.com/get_location/" + id);
-        const data = await res.json();
+        try {
+            // Evitar cache y forzar petición nueva
+            const res = await fetch(`${backendUrl}/get_location/${id}?t=${new Date().getTime()}`, {
+                cache: "no-store"
+            });
+            const data = await res.json();
 
-        if (!data.lat || !data.lng) return;
+            if (!data || !data.lat || !data.lng) {
+                statusDiv.textContent = "No hay datos de ubicación todavía. Asegúrate de abrir primero el link del conductor.";
+                return;
+            }
 
-        if (!marker) {
-            marker = L.marker([data.lat, data.lng]).addTo(map);
-            map.setView([data.lat, data.lng], 15);
-        } else {
-            marker.setLatLng([data.lat, data.lng]);
+            statusDiv.textContent = `Última ubicación recibida (precisión: ${data.accuracy} m)`;
+
+            if (!marker) {
+                marker = L.marker([data.lat, data.lng]).addTo(map);
+                map.setView([data.lat, data.lng], 15);
+            } else {
+                marker.setLatLng([data.lat, data.lng]);
+            }
+
+        } catch (err) {
+            statusDiv.textContent = "Error al obtener datos del backend: " + err;
+            console.error(err);
         }
     }
 
-    setInterval(loadPosition, 3000); // actualiza cada 3 segundos
+    // Actualizar cada 3 segundos
+    setInterval(loadPosition, 3000);
+
+    // Carga inicial
+    loadPosition();
 </script>
 
 </body>
-
 </html>
