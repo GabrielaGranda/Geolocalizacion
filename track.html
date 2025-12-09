@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Compartir ubicación</title>
+</head>
+<body>
+    <h2>Compartiendo ubicación…</h2>
+    <p>Por favor espera, el sistema está enviando tu posición.</p>
+
+    <script>
+        async function sendLocation() {
+            if (!navigator.geolocation) {
+                alert("Tu dispositivo no permite geolocalización.");
+                return;
+            }
+
+            navigator.geolocation.watchPosition(async (pos) => {
+                const data = {
+                    id: new URLSearchParams(window.location.search).get("id"),
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy
+                };
+
+                await fetch("https://TU_BACKEND/receive_location", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+            });
+        }
+
+        sendLocation();
+    </script>
+</body>
+</html>
